@@ -338,9 +338,7 @@ export default function PublicReport() {
   useEffect(() => {
     async function loadRoads() {
       try {
-        const res = await fetch(`${API_URL}/roads/`, {
-          headers: getAuthHeader(),
-        });
+        const res = await fetch(`${API_URL}/roads/`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
@@ -352,7 +350,7 @@ export default function PublicReport() {
       }
     }
     loadRoads();
-  }, [getAuthHeader]);
+  }, []);
 
   const handleAcquireGps = async () => {
     setIsLocating(true);
