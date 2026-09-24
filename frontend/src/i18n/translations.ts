@@ -383,6 +383,81 @@ export interface TranslationDict {
     sourceIncident: string;
     sourceGps: string;
     sourceAiModel: string;
+    severityLabel: string;
+    locationLabel: string;
+    corridorLabel: string;
+    hazardTypeLabel: string;
+    timestampLabel: string;
+    expectedImpact: string;
+    recommendedAction: string;
+    actionAvoid: string;
+    actionDelays: string;
+    actionAlternate: string;
+    actionCaution: string;
+    avoidCorridor: string;
+    alternateRoute: string;
+    severityCritical: string;
+    severityHigh: string;
+    severityMedium: string;
+    severityLow: string;
+    criticalHazard: string;
+    highHazard: string;
+    mediumHazard: string;
+    lowHazard: string;
+    hazard: string;
+    typeLandslide: string;
+    typeRockfall: string;
+    hazardLandslideRockfall: string;
+    hazardFlooding: string;
+    hazardRoadBlockage: string;
+    hazardInfrastructureDamage: string;
+    hazardSevereWeather: string;
+    hazardTrafficAccident: string;
+    hazardTransitDelay: string;
+    hazardRouteDetour: string;
+    hazardPredictiveDisruption: string;
+    hazardCorridorBlocked: string;
+    hazardRoadIncident: string;
+    hazardRoadRisk: string;
+    sourceVerifiedCitizenReport: string;
+    sourceCitizenReport: string;
+    sourceIncidentEntity: string;
+    sourceTrip: string;
+    sourceVehicle: string;
+    operationalVerification: string;
+    operationalVerificationRequired: string;
+    forecastHorizon: string;
+    predictiveAdvisory: string;
+    confirmedBadge: string;
+    criticalLandslideDesc: string;
+    titleLandslideWarning: string;
+    titleRoadAccess: string;
+    titleSevereWeather: string;
+    titleVehicleBehind: string;
+    titleFloodRisk: string;
+    titleCorridorNormalized: string;
+    seedLandslideDesc: string;
+    seedRoadAccessDesc: string;
+    seedWeatherDesc: string;
+    seedVehicleDesc: string;
+    seedFloodDesc: string;
+    seedNormalizedDesc: string;
+    justNow: string;
+    minuteAgo: string;
+    minutesAgo: string;
+    hourAgo: string;
+    hoursAgo: string;
+    dayAgo: string;
+    daysAgo: string;
+    recently: string;
+    majorLandslide: string;
+    impassable: string;
+    fallenTree: string;
+    fallenTreeBlockingLane: string;
+    detourComputedPoints: string;
+    detourComputed: string;
+    reducesCorridorRisk: string;
+    blockingDisruptionDesc: string;
   };
 
   roads: {
@@ -751,6 +826,28 @@ export interface TranslationDict {
     explainShapBtn: string;
     modelDetailsBtn: string;
     topFactorsTitle: string;
+  };
+
+  districtIntelligence: {
+    sectionTitle: string;
+    sectionSubtitle: string;
+    filterStateLabel: string;
+    allStates: string;
+    filterDistrictLabel: string;
+    allDistricts: string;
+    openCorridors: string;
+    restrictedCorridors: string;
+    blockedCorridors: string;
+    hazardsTitle: string;
+    noHazards: string;
+    noData: string;
+    routeTitle: string;
+    routeUnavailable: string;
+    weatherTitle: string;
+    weatherUnavailable: string;
+    corridorCount: string;
+    statusLabel: string;
+    activeHazardsCount: string;
   };
 }
 
@@ -1131,6 +1228,81 @@ export const translations: Record<Language, TranslationDict> = {
       sourceIncident: "Field Officer Reports & Citizen Ingestion",
       sourceGps: "Live Vehicle Geofence Monitoring",
       sourceAiModel: "Predictive Road Risk ML Models",
+      severityLabel: "Severity",
+      locationLabel: "Location / Area",
+      corridorLabel: "Affected Corridor",
+      hazardTypeLabel: "Hazard Type",
+      timestampLabel: "Alert Time",
+      expectedImpact: "Expected Impact",
+      recommendedAction: "Recommended Action",
+      actionAvoid: "Avoid affected corridor — use an available alternate route",
+      actionDelays: "Expect delays — exercise caution",
+      actionAlternate: "Use an available alternate route",
+      actionCaution: "Exercise caution — monitor road conditions",
+      avoidCorridor: "Avoid affected corridor",
+      alternateRoute: "Use an alternate route",
+      severityCritical: "CRITICAL",
+      severityHigh: "HIGH",
+      severityMedium: "MEDIUM",
+      severityLow: "LOW",
+      criticalHazard: "Critical Hazard",
+      highHazard: "High Hazard",
+      mediumHazard: "Medium Hazard",
+      lowHazard: "Low Hazard",
+      hazard: "Hazard",
+      typeLandslide: "Landslide",
+      typeRockfall: "Rockfall",
+      hazardLandslideRockfall: "Landslide / Rockfall",
+      hazardFlooding: "Flooding / Waterlogging",
+      hazardRoadBlockage: "Road Blockage",
+      hazardInfrastructureDamage: "Infrastructure / Road Damage",
+      hazardSevereWeather: "Severe Weather",
+      hazardTrafficAccident: "Traffic Accident",
+      hazardTransitDelay: "Transit Delay / Congestion",
+      hazardRouteDetour: "Route Detour",
+      hazardPredictiveDisruption: "Predictive Disruption Risk",
+      hazardCorridorBlocked: "Confirmed Corridor Blockage",
+      hazardRoadIncident: "Road Incident",
+      hazardRoadRisk: "Road Risk",
+      sourceVerifiedCitizenReport: "VERIFIED CITIZEN REPORT",
+      sourceCitizenReport: "CITIZEN REPORT",
+      sourceIncidentEntity: "INCIDENT",
+      sourceTrip: "TRIP",
+      sourceVehicle: "VEHICLE",
+      operationalVerification: "operational verification",
+      operationalVerificationRequired: "Operational verification required • Prototype ML advisory",
+      forecastHorizon: "Forecast Horizon: Next 6 Hours • Threshold: 55%",
+      predictiveAdvisory: "PREDICTIVE ADVISORY",
+      confirmedBadge: "CONFIRMED",
+      criticalLandslideDesc: "Critical landslide requiring operational verification.",
+      titleLandslideWarning: "Critical Landslide Warning",
+      titleRoadAccess: "Road Accessibility Reduced",
+      titleSevereWeather: "Severe Weather Alert: Heavy Rainfall",
+      titleVehicleBehind: "Vehicle Running Behind Schedule",
+      titleFloodRisk: "Flood Risk Advisory",
+      titleCorridorNormalized: "Corridor Status Normalized",
+      seedLandslideDesc: "Landslide activity reported near an active logistics corridor on NH-15.",
+      seedRoadAccessDesc: "Heavy rainfall has increased disruption probability along the corridor.",
+      seedWeatherDesc: "Rainfall intensity above warning threshold affecting transport corridors.",
+      seedVehicleDesc: "Estimated arrival time increased due to mountain pass bottleneck.",
+      seedFloodDesc: "Water level and rainfall indicators suggest elevated flood risk along lowlands.",
+      seedNormalizedDesc: "Previously restricted road segment has returned to normal operation.",
+      justNow: "Just now",
+      minuteAgo: "{count} min ago",
+      minutesAgo: "{count} mins ago",
+      hourAgo: "{count} hr ago",
+      hoursAgo: "{count} hrs ago",
+      dayAgo: "{count} d ago",
+      daysAgo: "{count} days ago",
+      recently: "Recently",
+      majorLandslide: "Major Landslide",
+      impassable: "Impassable",
+      fallenTree: "Fallen Tree",
+      fallenTreeBlockingLane: "Fallen tree blocking lane.",
+      detourComputedPoints: "Dynamic detour via {corridor} corridor computed. Reduces corridor risk by {points} points.",
+      detourComputed: "Dynamic detour via {corridor} corridor computed.",
+      reducesCorridorRisk: "Reduces corridor risk by {points} points.",
+      blockingDisruptionDesc: "Major landslide blocking {corridor} corridor near {location}. Impassable for heavy logistics units.",
     },
     roads: {
       title: "Road & Corridor Risk",
@@ -1489,6 +1661,27 @@ export const translations: Record<Language, TranslationDict> = {
       explainShapBtn: "Explain with SHAP",
       modelDetailsBtn: "Model Architecture",
       topFactorsTitle: "Top Contributing Risk Factors",
+    },
+    districtIntelligence: {
+      sectionTitle: "Public District & Regional Intelligence",
+      sectionSubtitle: "Corridor connectivity, active hazards, and atmospheric observations across North Eastern Region districts",
+      filterStateLabel: "State / Region",
+      allStates: "All NER States",
+      filterDistrictLabel: "District",
+      allDistricts: "All Districts",
+      openCorridors: "Open Corridors",
+      restrictedCorridors: "Restricted Corridors",
+      blockedCorridors: "Blocked Corridors",
+      hazardsTitle: "Active District Hazards",
+      noHazards: "No active hazard disruptions reported in this district.",
+      noData: "No corridor or district intelligence data available for this selection.",
+      routeTitle: "Public Route Advisory",
+      routeUnavailable: "Direct point-to-point dispatch routes are restricted to authenticated transport operators. Refer to corridor accessibility above for public travel planning.",
+      weatherTitle: "Regional Atmospheric Telemetry",
+      weatherUnavailable: "Weather telemetry unavailable for this area.",
+      corridorCount: "{count} Corridor(s)",
+      statusLabel: "Connectivity Status",
+      activeHazardsCount: "{count} Active Hazard(s)",
     },
   },
 
@@ -1868,6 +2061,81 @@ export const translations: Record<Language, TranslationDict> = {
       sourceIncident: "फील्ड अधिकारी रिपोर्ट व नागरिक सूचनाएं",
       sourceGps: "लाइव वाहन जियोफेंस निगरानी",
       sourceAiModel: "पूर्वानुमानित सड़क जोखिम एमएल मॉडल",
+      severityLabel: "तीव्रता",
+      locationLabel: "स्थान / क्षेत्र",
+      corridorLabel: "प्रभावित कॉरिडोर",
+      hazardTypeLabel: "खतरे का प्रकार",
+      timestampLabel: "अलर्ट समय",
+      expectedImpact: "अपेक्षित प्रभाव",
+      recommendedAction: "अनुशंसित कार्रवाई",
+      actionAvoid: "प्रभावित कॉरिडोर से बचें — वैकल्पिक मार्ग का उपयोग करें",
+      actionDelays: "देरी की संभावना — सावधानी बरतें",
+      actionAlternate: "उपलब्ध वैकल्पिक मार्ग का उपयोग करें",
+      actionCaution: "सावधानी बरतें — सड़क की स्थिति पर नज़र रखें",
+      avoidCorridor: "प्रभावित कॉरिडोर से बचें",
+      alternateRoute: "वैकल्पिक मार्ग का उपयोग करें",
+      severityCritical: "गंभीर (CRITICAL)",
+      severityHigh: "उच्च (HIGH)",
+      severityMedium: "मध्यम (MEDIUM)",
+      severityLow: "कम (LOW)",
+      criticalHazard: "गंभीर ख़तरा",
+      highHazard: "उच्च ख़तरा",
+      mediumHazard: "मध्यम ख़तरा",
+      lowHazard: "कम ख़तरा",
+      hazard: "ख़तरा",
+      typeLandslide: "भूस्खलन",
+      typeRockfall: "चट्टान गिरना (रॉकफॉल)",
+      hazardLandslideRockfall: "भूस्खलन / चट्टान गिरना",
+      hazardFlooding: "बाढ़ / जलभराव",
+      hazardRoadBlockage: "सड़क अवरोध",
+      hazardInfrastructureDamage: "सड़क व बुनियादी ढांचा क्षति",
+      hazardSevereWeather: "खराब मौसम",
+      hazardTrafficAccident: "सड़क दुर्घटना",
+      hazardTransitDelay: "यातायात में देरी / जाम",
+      hazardRouteDetour: "मार्ग परिवर्तन (डिटूर)",
+      hazardPredictiveDisruption: "पूर्वानुमानित व्यवधान जोखिम",
+      hazardCorridorBlocked: "पुष्टित कॉरिडोर अवरोध",
+      hazardRoadIncident: "सड़क घटना",
+      hazardRoadRisk: "सड़क जोखिम",
+      sourceVerifiedCitizenReport: "सत्यापित नागरिक रिपोर्ट",
+      sourceCitizenReport: "नागरिक रिपोर्ट",
+      sourceIncidentEntity: "घटना",
+      sourceTrip: "यात्रा",
+      sourceVehicle: "वाहन",
+      operationalVerification: "परिचालन सत्यापन",
+      operationalVerificationRequired: "परिचालन सत्यापन आवश्यक • प्रोटोटाइप एमएल सलाह",
+      forecastHorizon: "पूर्वानुमान अवधि: अगले 6 घंटे • थ्रेशोल्ड: 55%",
+      predictiveAdvisory: "पूर्वानुमान सलाह",
+      confirmedBadge: "पुष्टित",
+      criticalLandslideDesc: "गंभीर भूस्खलन, जिसके लिए परिचालन सत्यापन आवश्यक है।",
+      titleLandslideWarning: "गंभीर भूस्खलन चेतावनी",
+      titleRoadAccess: "सड़क पहुंच में कमी",
+      titleSevereWeather: "गंभीर मौसम चेतावनी: भारी वर्षा",
+      titleVehicleBehind: "वाहन निर्धारित समय से पीछे",
+      titleFloodRisk: "बाढ़ जोखिम सलाह",
+      titleCorridorNormalized: "कॉरिडोर स्थिति सामान्य",
+      seedLandslideDesc: "NH-15 पर सक्रिय लॉजिस्टिक्स कॉरिडोर के पास भूस्खलन की सूचना मिली है।",
+      seedRoadAccessDesc: "भारी बारिश से कॉरिडोर पर व्यवधान की संभावना बढ़ गई है।",
+      seedWeatherDesc: "परिवहन कॉरिडोर को प्रभावित करने वाली चेतावनी सीमा से अधिक वर्षा तीव्रता।",
+      seedVehicleDesc: "पहाड़ी दर्रे की बाधा के कारण अनुमानित आगमन समय बढ़ गया है।",
+      seedFloodDesc: "जल स्तर और वर्षा संकेतक निचले इलाकों में बाढ़ के बढ़ते जोखिम का संकेत देते हैं।",
+      seedNormalizedDesc: "पहले से प्रतिबंधित सड़क खंड सामान्य संचालन में लौट आया है।",
+      justNow: "अभी-अभी",
+      minuteAgo: "{count} मिनट पहले",
+      minutesAgo: "{count} मिनट पहले",
+      hourAgo: "{count} घंटा पहले",
+      hoursAgo: "{count} घंटे पहले",
+      dayAgo: "{count} दिन पहले",
+      daysAgo: "{count} दिन पहले",
+      recently: "हाल ही में",
+      majorLandslide: "बड़ा भूस्खलन",
+      impassable: "अगम्य",
+      fallenTree: "गिरा हुआ पेड़",
+      fallenTreeBlockingLane: "गिरा हुआ पेड़ लेन को अवरुद्ध कर रहा है।",
+      detourComputedPoints: "{corridor} कॉरिडोर के रास्ते गतिशील वैकल्पिक मार्ग निकाला गया। कॉरिडोर जोखिम में {points} अंकों की कमी आई है।",
+      detourComputed: "{corridor} कॉरिडोर के रास्ते गतिशील वैकल्पिक मार्ग निकाला गया।",
+      reducesCorridorRisk: "कॉरिडोर जोखिम में {points} अंकों की कमी आई है।",
+      blockingDisruptionDesc: "{location} के पास {corridor} कॉरिडोर को अवरुद्ध करने वाला बड़ा भूस्खलन। भारी रसद इकाइयों के लिए अगम्य।",
     },
     roads: {
       title: "सड़क व कॉरिडोर जोखिम",
@@ -2226,6 +2494,27 @@ export const translations: Record<Language, TranslationDict> = {
       explainShapBtn: "SHAP व्याख्या देखें",
       modelDetailsBtn: "मॉडल आर्किटेक्चर",
       topFactorsTitle: "प्रमुख योगदानकर्ता कारक",
+    },
+    districtIntelligence: {
+      sectionTitle: "सार्वजनिक ज़िला एवं क्षेत्रीय सूचना",
+      sectionSubtitle: "पूर्वोत्तर क्षेत्र के ज़िलों में कॉरिडोर कनेक्टिविटी, सक्रिय खतरे और मौसम का वास्तविक डेटा",
+      filterStateLabel: "राज्य / क्षेत्र",
+      allStates: "सभी पूर्वोत्तर राज्य",
+      filterDistrictLabel: "ज़िला",
+      allDistricts: "सभी ज़िले",
+      openCorridors: "खुले कॉरिडोर",
+      restrictedCorridors: "प्रतिबंधित कॉरिडोर",
+      blockedCorridors: "अवरुद्ध कॉरिडोर",
+      hazardsTitle: "सक्रिय ज़िला खतरे",
+      noHazards: "इस ज़िले में कोई सक्रिय आपदा या व्यवधान नहीं है।",
+      noData: "इस चयन के लिए कोई कॉरिडोर या ज़िला डेटा उपलब्ध नहीं है।",
+      routeTitle: "सार्वजनिक मार्ग सलाह",
+      routeUnavailable: "सीधा मार्ग नियोजन केवल अधिकृत परिवहन ऑपरेटरों के लिए उपलब्ध है। सार्वजनिक यात्रा के लिए ऊपर दी गई कॉरिडोर स्थिति देखें।",
+      weatherTitle: "क्षेत्रीय मौसम टेलीमेट्री",
+      weatherUnavailable: "इस क्षेत्र के लिए मौसम डेटा उपलब्ध नहीं है।",
+      corridorCount: "{count} कॉरिडोर",
+      statusLabel: "कनेक्टिविटी स्थिति",
+      activeHazardsCount: "{count} सक्रिय खतरे",
     },
   },
 
@@ -2605,6 +2894,81 @@ export const translations: Record<Language, TranslationDict> = {
       sourceIncident: "ক্ষেত্ৰ বিষয়া আৰু নাগৰিকৰ প্ৰতিবেদন",
       sourceGps: "বাহনৰ লাইভ জিয়'ফেন্সিং নিৰীক্ষণ",
       sourceAiModel: "পূৰ্বানুমানভিত্তিক বিপদ নিৰ্ণয়কাৰী AI মডেল",
+      severityLabel: "তীব্ৰতা",
+      locationLabel: "স্থান / অঞ্চল",
+      corridorLabel: "প্ৰভাৱিত কৰিডৰ",
+      hazardTypeLabel: "বিপদৰ প্ৰকাৰ",
+      timestampLabel: "সতৰ্কবাৰ্তা সময়",
+      expectedImpact: "প্ৰত্যাশিত প্ৰভাৱ",
+      recommendedAction: "পৰামৰ্শিত পদক্ষেপ",
+      actionAvoid: "প্ৰভাৱিত কৰিডৰ পৰিহাৰ কৰক — বিকল্প পথ ব্যৱহাৰ কৰক",
+      actionDelays: "পলম হোৱাৰ সম্ভাৱনা — সাৱধান হওক",
+      actionAlternate: "উপলব্ধ বিকল্প পথ ব্যৱহাৰ কৰক",
+      actionCaution: "সাৱধানতা অৱলম্বন কৰক — পথৰ অৱস্থা নিৰীক্ষণ কৰক",
+      avoidCorridor: "প্ৰভাৱিত কৰিডৰ পৰিহাৰ কৰক",
+      alternateRoute: "বিকল্প পথ ব্যৱহাৰ কৰক",
+      severityCritical: "সংকটজনক (CRITICAL)",
+      severityHigh: "উচ্চ (HIGH)",
+      severityMedium: "মধ্যম (MEDIUM)",
+      severityLow: "নিম্ন (LOW)",
+      criticalHazard: "সংকটজনক বিপদ",
+      highHazard: "উচ্চ বিপদ",
+      mediumHazard: "মধ্যম বিপদ",
+      lowHazard: "নিম্ন বিপদ",
+      hazard: "বিপদ",
+      typeLandslide: "ভূমিস্খলন",
+      typeRockfall: "শিলা স্খলন (ৰকফল)",
+      hazardLandslideRockfall: "ভূমিস্খলন / শিলা স্খলন",
+      hazardFlooding: "বানপানী / জলমগ্নতা",
+      hazardRoadBlockage: "পথ অৱৰোধ",
+      hazardInfrastructureDamage: "আন্তঃগাঁথনি / পথৰ ক্ষতি",
+      hazardSevereWeather: "প্ৰতিকূল বতৰ",
+      hazardTrafficAccident: "যানবাহন দুর্ঘটনা",
+      hazardTransitDelay: "যাতায়াত পলম / যান-জঁট",
+      hazardRouteDetour: "পথ সলনি (Detour)",
+      hazardPredictiveDisruption: "পূৰ্বানুমানিত ব্যাঘাত আশংকা",
+      hazardCorridorBlocked: "নিশ্চিত কৰিড'ৰ অৱৰোধ",
+      hazardRoadIncident: "পথ দুৰ্ঘটনা/ঘটনা",
+      hazardRoadRisk: "পথৰ আশংকা",
+      sourceVerifiedCitizenReport: "প্ৰমাণিত নাগৰিক প্ৰতিবেদন",
+      sourceCitizenReport: "নাগৰিক প্ৰতিবেদন",
+      sourceIncidentEntity: "ঘটনা",
+      sourceTrip: "যাত্ৰা",
+      sourceVehicle: "বাহন",
+      operationalVerification: "কাৰ্য্যকৰী প্ৰমাণীকৰণ",
+      operationalVerificationRequired: "কাৰ্য্যকৰী প্ৰমাণীকৰণ প্ৰয়োজনীয় • প্ৰ'ট'টাইপ ML পৰামৰ্শ",
+      forecastHorizon: "পূৰ্বানুমান সময়সীমা: অহা ৬ ঘণ্টা • থ্ৰেছহ'ল্ড: ৫৫%",
+      predictiveAdvisory: "পূৰ্বানুমান পৰামৰ্শ",
+      confirmedBadge: "নিশ্চিত",
+      criticalLandslideDesc: "সংকটজনক ভূমিস্খলন, যাৰ বাবে কাৰ্য্যকৰী প্ৰমাণীকৰণ প্ৰয়োজনীয়।",
+      titleLandslideWarning: "সংকটজনক ভূমিস্খলন সতৰ্কবাৰ্তা",
+      titleRoadAccess: "পথৰ সুগমতা হ্ৰাস",
+      titleSevereWeather: "প্ৰতিকূল বতৰৰ সতৰ্কবাৰ্তা: প্ৰচণ্ড বৰষুণ",
+      titleVehicleBehind: "বাহন নিৰ্ধাৰিত সময়তকৈ পলম",
+      titleFloodRisk: "বানপানীৰ আশংকাৰ পৰামৰ্শ",
+      titleCorridorNormalized: "কৰিড'ৰৰ অৱস্থা স্বাভাৱিক",
+      seedLandslideDesc: "NH-15 ত সক্ৰিয় লজিষ্টিক কৰিড'ৰৰ ওচৰত ভূমিস্খলনৰ তথ্য পোৱা গৈছে।",
+      seedRoadAccessDesc: "প্ৰচণ্ড বৰষুণৰ বাবে কৰিড'ৰত ব্যাঘাতৰ সম্ভাৱনা বৃদ্ধি পাইছে।",
+      seedWeatherDesc: "পৰিবহণ কৰিড'ৰত সতৰ্কবাৰ্তাৰ সীমাৰ ওপৰত বৰষুণৰ তীব্ৰতা।",
+      seedVehicleDesc: "পাহাৰীয়া পথৰ যান-জঁটৰ বাবে আগমনৰ সম্ভাৱ্য সময় বৃদ্ধি পাইছে।",
+      seedFloodDesc: "পানীৰ স্তৰ আৰু বৰষুণৰ সূচকে নামনি অঞ্চলত বানপানীৰ আশংকাৰ ইংগিত দিয়ে।",
+      seedNormalizedDesc: "পূৰ্বে নিষিদ্ধ পথ অংশ স্বাভাৱিক অৱস্থালৈ ঘূৰি আহিছে।",
+      justNow: "এইমাত্ৰ",
+      minuteAgo: "{count} মিনিট পূৰ্বে",
+      minutesAgo: "{count} মিনিট পূৰ্বে",
+      hourAgo: "{count} ঘণ্টা পূৰ্বে",
+      hoursAgo: "{count} ঘণ্টা পূৰ্বে",
+      dayAgo: "{count} দিন পূৰ্বে",
+      daysAgo: "{count} দিন পূৰ্বে",
+      recently: "শেহতীয়াকৈ",
+      majorLandslide: "বৃহৎ ভূমিস্খলন",
+      impassable: "অগম্য",
+      fallenTree: "বাগৰি পৰা গছ",
+      fallenTreeBlockingLane: "বাগৰি পৰা গছে পথৰ লেন বন্ধ কৰিছে।",
+      detourComputedPoints: "{corridor} কৰিড'ৰেৰে গতিশীল বিকল্প পথ নিৰ্ণয় কৰা হৈছে। কৰিড'ৰৰ বিপদাশংকা {points} পইণ্ট হ্ৰাস পাইছে।",
+      detourComputed: "{corridor} কৰিড'ৰেৰে গতিশীল বিকল্প পথ নিৰ্ণয় কৰা হৈছে।",
+      reducesCorridorRisk: "কৰিড'ৰৰ বিপদাশংকা {points} পইণ্ট হ্ৰাস পাইছে।",
+      blockingDisruptionDesc: "{location}ৰ ওচৰত {corridor} কৰিড'ৰ অৱৰোধ কৰা বৃহৎ ভূমিস্খলন। গধুৰ পৰিবহণ যান-বাহনৰ বাবে অগম্য।",
     },
     roads: {
       title: "পথ আৰু সংযোগী বিপদ",
@@ -2964,5 +3328,385 @@ export const translations: Record<Language, TranslationDict> = {
       modelDetailsBtn: "মডেলৰ আৰ্হি",
       topFactorsTitle: "প্ৰধান প্ৰভাৱশালী কাৰকসমূহ",
     },
+    districtIntelligence: {
+      sectionTitle: "ৰাজহুৱা জিলা আৰু আঞ্চলিক তথ্য",
+      sectionSubtitle: "উত্তৰ-পূব অঞ্চলৰ জিলাসমূহত কৰিডৰ সংযোগ, সক্ৰিয় বিপদ আৰু বতৰৰ প্ৰকৃত তথ্য",
+      filterStateLabel: "ৰাজ্য / অঞ্চল",
+      allStates: "সকলো উত্তৰ-পূব ৰাজ্য",
+      filterDistrictLabel: "জিলা",
+      allDistricts: "সকলো জিলা",
+      openCorridors: "খোলা কৰিডৰ",
+      restrictedCorridors: "সীমিত কৰিডৰ",
+      blockedCorridors: "বন্ধ কৰিডৰ",
+      hazardsTitle: "সক্ৰিয় জিলাৰ বিপদসমূহ",
+      noHazards: "এই জিলাত কোনো সক্ৰিয় বিপদ বা বিঘ্নতা পোৱা হোৱা নাই।",
+      noData: "এই বাচনিৰ বাবে কোনো কৰিডৰ বা জিলা তথ্য উপলব্ধ নাই।",
+      routeTitle: "ৰাজহুৱা পথ পৰামৰ্শ",
+      routeUnavailable: "পোনপটীয়া পথ পৰিকল্পনা কেৱল কৰ্তৃত্বপ্ৰাপ্ত পৰিবহণ চালকসকলৰ বাবে সংৰক্ষিত। ৰাজহুৱা ভ্ৰমণৰ বাবে ওপৰৰ কৰিডৰ স্থিতি চাওক।",
+      weatherTitle: "আঞ্চলিক বতৰ টেলিমেট্ৰী",
+      weatherUnavailable: "এই অঞ্চলৰ বাবে বতৰৰ তথ্য উপলব্ধ নহয়।",
+      corridorCount: "{count} টা কৰিডৰ",
+      statusLabel: "সংযোগৰ স্থিতি",
+      activeHazardsCount: "{count} টা সক্ৰিয় বিপদ",
+    },
   },
 };
+
+export function formatLocalizedRelativeTime(
+  dateStr?: string,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!dateStr) return tAlerts?.justNow || "Just now";
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return tAlerts?.justNow || "Just now";
+    if (diffMins < 60) {
+      const template = diffMins === 1 ? (tAlerts?.minuteAgo || "{count} min ago") : (tAlerts?.minutesAgo || "{count} mins ago");
+      return template.replace("{count}", String(diffMins));
+    }
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) {
+      const template = diffHours === 1 ? (tAlerts?.hourAgo || "{count} hr ago") : (tAlerts?.hoursAgo || "{count} hrs ago");
+      return template.replace("{count}", String(diffHours));
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    const template = diffDays === 1 ? (tAlerts?.dayAgo || "{count} d ago") : (tAlerts?.daysAgo || "{count} days ago");
+    return template.replace("{count}", String(diffDays));
+  } catch {
+    return tAlerts?.recently || "Recently";
+  }
+}
+
+export function localizeAlertSeverity(
+  severity?: string,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!severity) return tAlerts?.severityCritical || "CRITICAL";
+  const s = severity.trim().toLowerCase();
+  if (!tAlerts) return severity;
+  switch (s) {
+    case "critical":
+      return tAlerts.severityCritical || "CRITICAL";
+    case "high":
+      return tAlerts.severityHigh || "HIGH";
+    case "medium":
+      return tAlerts.severityMedium || "MEDIUM";
+    case "low":
+      return tAlerts.severityLow || "LOW";
+    default:
+      return severity;
+  }
+}
+
+export function localizeHazardType(
+  hazard?: string,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!hazard || !tAlerts) return hazard || "";
+  const h = hazard.toLowerCase().trim();
+
+  if (h === "major landslide" || (h.includes("major") && h.includes("landslide"))) {
+    return tAlerts.majorLandslide || hazard;
+  }
+  if (h.includes("fallen tree") || h.includes("tree fall")) {
+    return tAlerts.fallenTree || hazard;
+  }
+  if (h.includes("landslide") && h.includes("rockfall")) {
+    return tAlerts.hazardLandslideRockfall || hazard;
+  }
+  if (h === "landslide" || h.includes("landslide") || h.includes("mudslide")) {
+    return tAlerts.typeLandslide || hazard;
+  }
+  if (h === "rockfall" || h.includes("rockfall")) {
+    return tAlerts.typeRockfall || hazard;
+  }
+  if (h.includes("flood") || h.includes("waterlog") || h.includes("inundat")) {
+    return tAlerts.hazardFlooding || hazard;
+  }
+  if (h.includes("block") || h.includes("corridor_blocked")) {
+    return tAlerts.hazardRoadBlockage || hazard;
+  }
+  if (h.includes("infrastructure") || h.includes("damage") || h.includes("bridge") || h.includes("cave-in")) {
+    return tAlerts.hazardInfrastructureDamage || hazard;
+  }
+  if (h.includes("weather") || h.includes("rain") || h.includes("storm") || h.includes("cyclone")) {
+    return tAlerts.hazardSevereWeather || hazard;
+  }
+  if (h.includes("accident") || h.includes("collision")) {
+    return tAlerts.hazardTrafficAccident || hazard;
+  }
+  if (h.includes("delay") || h.includes("congestion")) {
+    return tAlerts.hazardTransitDelay || hazard;
+  }
+  if (h.includes("reroute") || h.includes("detour")) {
+    return tAlerts.hazardRouteDetour || hazard;
+  }
+  if (h.includes("predictive")) {
+    return tAlerts.hazardPredictiveDisruption || hazard;
+  }
+  if (h.includes("road incident") || h.includes("road_incident")) {
+    return tAlerts.hazardRoadIncident || hazard;
+  }
+  if (h.includes("road risk") || h.includes("road_risk")) {
+    return tAlerts.hazardRoadRisk || hazard;
+  }
+
+  return hazard;
+}
+
+export function localizeAlertTitle(
+  title?: string,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!title || !tAlerts) return title || "";
+
+  // 1. Decompose patterns like "Incident #15 — Major Landslide" or "Incident 15: Major Landslide"
+  const incidentMatch = title.match(/^(?:Incident|घटना)\s*#?(\d+)\s*[-—–:]\s*(.+)$/i);
+  if (incidentMatch) {
+    const id = incidentMatch[1];
+    const rawHazard = incidentMatch[2].trim();
+    const localizedHazard = localizeHazardType(rawHazard, tAlerts);
+    const incidentWord = tAlerts.sourceIncidentEntity || "Incident";
+    return `${incidentWord} #${id} — ${localizedHazard}`;
+  }
+
+  // 2. Decompose patterns like "Critical Hazard: Landslide", "High Hazard: Flooding", "Critical Incident: Landslide"
+  const hazardMatch = title.match(/^(Critical|High|Medium|Low)\s+(Hazard|Incident):\s*(.+)$/i);
+  if (hazardMatch) {
+    const sev = hazardMatch[1].toLowerCase();
+    const kind = hazardMatch[2].toLowerCase();
+    const rawHazard = hazardMatch[3].trim();
+    const localizedHazard = localizeHazardType(rawHazard, tAlerts);
+    if (kind === "incident") {
+      const sevWord =
+        sev === "critical"
+          ? tAlerts.severityCritical
+          : sev === "high"
+            ? tAlerts.severityHigh
+            : sev === "medium"
+              ? tAlerts.severityMedium
+              : tAlerts.severityLow;
+      const incWord = tAlerts.sourceIncidentEntity || "Incident";
+      return `${sevWord} ${incWord}: ${localizedHazard}`;
+    }
+    let prefix = tAlerts.criticalHazard || "Critical Hazard";
+    if (sev === "high") prefix = tAlerts.highHazard || "High Hazard";
+    else if (sev === "medium") prefix = tAlerts.mediumHazard || "Medium Hazard";
+    else if (sev === "low") prefix = tAlerts.lowHazard || "Low Hazard";
+    return `${prefix}: ${localizedHazard}`;
+  }
+
+  // 3. Known seed titles
+  const tLower = title.toLowerCase().trim();
+  if (tLower === "critical landslide warning" || tLower.includes("critical landslide warning")) {
+    return tAlerts.titleLandslideWarning || title;
+  }
+  if (tLower === "road accessibility reduced" || tLower.includes("road accessibility reduced")) {
+    return tAlerts.titleRoadAccess || title;
+  }
+  if (tLower.includes("severe weather alert") && tLower.includes("heavy rainfall")) {
+    return tAlerts.titleSevereWeather || title;
+  }
+  if (tLower.includes("vehicle running behind schedule")) {
+    return tAlerts.titleVehicleBehind || title;
+  }
+  if (tLower.includes("flood risk advisory")) {
+    return tAlerts.titleFloodRisk || title;
+  }
+  if (tLower.includes("corridor status normalized")) {
+    return tAlerts.titleCorridorNormalized || title;
+  }
+
+  return title;
+}
+
+export function localizeAlertDescription(
+  desc?: string,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!desc || !tAlerts) return desc || "";
+
+  let text = desc;
+
+  // 1. Replace [Verified Citizen Report #117] while preserving dynamic #117
+  text = text.replace(
+    /\[Verified Citizen Report\s*#?(\d+)\]/gi,
+    (_match, id) => `[${tAlerts.sourceVerifiedCitizenReport || "Verified Citizen Report"} #${id}]`
+  );
+  text = text.replace(
+    /\[Citizen Report\s*#?(\d+)\]/gi,
+    (_match, id) => `[${tAlerts.sourceCitizenReport || "Citizen Report"} #${id}]`
+  );
+
+  // 2. Tree fall / fallen tree blocking lane
+  text = text.replace(
+    /Fallen tree blocking (?:one\s+)?lane\.?/gi,
+    tAlerts.fallenTreeBlockingLane || "Fallen tree blocking lane."
+  );
+  text = text.replace(
+    /Tree fall blocking (?:one\s+)?lane\.?/gi,
+    tAlerts.fallenTreeBlockingLane || "Fallen tree blocking lane."
+  );
+
+  // 3. Dynamic detour and risk reduction with numbers preserved
+  text = text.replace(
+    /Dynamic detour via (.+?)(?: corridor)? computed\.\s*Reduces corridor risk by (\d+(?:\.\d+)?)\s*(?:points|pts)\.?/gi,
+    (_match, corridor, points) => {
+      if (tAlerts.detourComputedPoints) {
+        return tAlerts.detourComputedPoints
+          .replace("{corridor}", corridor)
+          .replace("{points}", points);
+      }
+      return _match;
+    }
+  );
+  text = text.replace(
+    /Dynamic detour via (.+?)(?: corridor)? computed\.?/gi,
+    (_match, corridor) => {
+      if (tAlerts.detourComputed) {
+        return tAlerts.detourComputed.replace("{corridor}", corridor);
+      }
+      return _match;
+    }
+  );
+  text = text.replace(
+    /Reduces corridor risk by (\d+(?:\.\d+)?)\s*(?:points|pts)\.?/gi,
+    (_match, points) => {
+      if (tAlerts.reducesCorridorRisk) {
+        return tAlerts.reducesCorridorRisk.replace("{points}", points);
+      }
+      return _match;
+    }
+  );
+
+  // 4. Seeded/canonical blocking incident: "Major landslide blocking NH-15 corridor near Kharupetia. Impassable for heavy logistics units."
+  text = text.replace(
+    /(?:(\[DEMO-[^\]]+\])\s*)?Major landslide blocking (.+?)(?: corridor)? near ([^.]+?)\.\s*Impassable for heavy logistics units\.?/gi,
+    (_match, demoTag, corridor, location) => {
+      const prefix = demoTag ? `${demoTag} ` : "";
+      if (tAlerts.blockingDisruptionDesc) {
+        return `${prefix}${tAlerts.blockingDisruptionDesc.replace("{corridor}", corridor).replace("{location}", location)}`;
+      }
+      return _match;
+    }
+  );
+
+  // 5. Demo flow description without "Impassable" sentence: "[DEMO-SIH-2026] Major landslide blocking NH-15 corridor near Kharupetia"
+  text = text.replace(
+    /(\[DEMO-SIH-2026\]\s*)?Major landslide blocking (.+?)(?: corridor)? near (.+?)$/gi,
+    (_match, demoTag, corridor, location) => {
+      const prefix = demoTag ? `${demoTag} ` : "";
+      if (tAlerts.blockingDisruptionDesc) {
+        const withoutImpassable = tAlerts.blockingDisruptionDesc
+          .replace("{corridor}", corridor)
+          .replace("{location}", location)
+          .split(/।|\./)[0]
+          .trim();
+        return `${prefix}${withoutImpassable}।`;
+      }
+      return _match;
+    }
+  );
+
+  // 6. Generic reported blocking: "Reported landslide blocking corridor nearby"
+  text = text.replace(
+    /Reported (.+?) blocking corridor nearby/gi,
+    (_match, rawHazard) => {
+      const localizedH = localizeHazardType(rawHazard, tAlerts);
+      return tAlerts.hazardRoadBlockage
+        ? `${localizedH} — ${tAlerts.hazardRoadBlockage}`
+        : _match;
+    }
+  );
+
+  // 7. Standalone "Impassable for heavy logistics units"
+  if (tAlerts.impassable) {
+    text = text.replace(/Impassable for heavy logistics units\.?/gi, `${tAlerts.impassable}.`);
+  }
+
+  // 8. Localize well-known test / fixture / seed report descriptions
+  const lower = text.toLowerCase();
+  if (lower.includes("critical landslide requiring operational verification")) {
+    const prefixMatch = text.match(/^(\[[^\]]+\]\s*)?/);
+    const prefix = prefixMatch ? prefixMatch[0] : "";
+    if (tAlerts.criticalLandslideDesc) {
+      return `${prefix}${tAlerts.criticalLandslideDesc}`;
+    }
+  }
+
+  // 9. Known seed descriptions
+  if (lower.includes("landslide activity reported near an active logistics corridor on nh-15")) {
+    return tAlerts.seedLandslideDesc || text;
+  }
+  if (lower.includes("heavy rainfall has increased disruption probability along the corridor")) {
+    return tAlerts.seedRoadAccessDesc || text;
+  }
+  if (lower.includes("rainfall intensity above warning threshold affecting transport corridors")) {
+    return tAlerts.seedWeatherDesc || text;
+  }
+  if (lower.includes("estimated arrival time increased due to mountain pass bottleneck")) {
+    return tAlerts.seedVehicleDesc || text;
+  }
+  if (lower.includes("water level and rainfall indicators suggest elevated flood risk along lowlands")) {
+    return tAlerts.seedFloodDesc || text;
+  }
+  if (lower.includes("previously restricted road segment has returned to normal operation")) {
+    return tAlerts.seedNormalizedDesc || text;
+  }
+
+  // 10. Translate "operational verification" within custom descriptions
+  if (tAlerts.operationalVerification) {
+    text = text.replace(/\boperational verification\b/gi, tAlerts.operationalVerification);
+  }
+
+  return text;
+}
+
+export function localizeSourceEntity(
+  entity?: string | null,
+  id?: number | null,
+  tAlerts?: TranslationDict["alerts"]
+): string {
+  if (!entity || !tAlerts) return entity || "";
+  const e = entity.toLowerCase().replace(/_/g, " ").trim();
+  let label = entity.replace(/_/g, " ").toUpperCase();
+
+  if (e.includes("verified citizen report")) {
+    label = tAlerts.sourceVerifiedCitizenReport || "VERIFIED CITIZEN REPORT";
+  } else if (e.includes("citizen report")) {
+    label = tAlerts.sourceCitizenReport || "CITIZEN REPORT";
+  } else if (e === "incident") {
+    label = tAlerts.sourceIncidentEntity || "INCIDENT";
+  } else if (e === "trip") {
+    label = tAlerts.sourceTrip || "TRIP";
+  } else if (e === "vehicle") {
+    label = tAlerts.sourceVehicle || "VEHICLE";
+  }
+
+  return id ? `${label} #${id}` : label;
+}
+
+export function formatAlertTimestamp(
+  dateStr?: string,
+  tAlerts?: TranslationDict["alerts"],
+  lang?: Language
+): { formatted: string; relative: string } {
+  if (!dateStr) return { formatted: tAlerts?.recently || "Recorded", relative: tAlerts?.recently || "Recently" };
+  const relative = formatLocalizedRelativeTime(dateStr, tAlerts);
+  try {
+    const dt = new Date(dateStr);
+    if (isNaN(dt.getTime())) return { formatted: dateStr, relative };
+    const locale = lang === "hi" ? "hi-IN" : lang === "as" ? "as-IN" : "en-US";
+    const formatted = dt.toLocaleString(locale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return { formatted, relative };
+  } catch {
+    return { formatted: dateStr, relative };
+  }
+}

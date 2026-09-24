@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
+  AlertCircle,
   AlertOctagon,
   AlertTriangle,
   ArrowRight,
@@ -44,6 +45,13 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { geolocationService, type GpsPosition } from "../services/geolocation";
+import {
+  formatAlertTimestamp,
+  localizeAlertDescription,
+  localizeAlertSeverity,
+  localizeAlertTitle,
+  localizeHazardType,
+} from "../i18n/translations";
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:8000";
 
@@ -102,6 +110,22 @@ type Road = {
   status: string;
   risk_score: number;
   length_km?: number;
+  latitude?: number;
+  longitude?: number;
+};
+
+type PublicCorridorRisk = {
+  id: number;
+  road: string;
+  highway?: string;
+  state: string;
+  district: string;
+  status: string;
+  risk_score: number;
+  risk_level: string;
+  movement_type?: string;
+  latitude: number;
+  longitude: number;
 };
 
 type Trip = {
@@ -152,20 +176,6 @@ type AlertItem = {
   created_at?: string;
 };
 
-function formatRelativeTime(dateStr?: string): string {
-  if (!dateStr) return "Just now";
-  try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hr ago`;
-    return `${Math.floor(diffHours / 24)} d ago`;
-  } catch {
-    return "Recently";
-  }
-}
 
 function alertIcon(type?: string) {
   switch (type?.toLowerCase()) {
@@ -184,6 +194,105 @@ function alertIcon(type?: string) {
     default:
       return AlertTriangle;
   }
+}
+
+function formatAlertType(rawType?: string): string {
+  if (!rawType) return "General Alert";
+  const map: Record<string, string> = {
+    road_incident: "Road Incident",
+    road_risk: "Road Risk",
+    reroute: "Reroute",
+    trip_delay: "Trip Delay",
+    weather: "Weather",
+    vehicle: "Vehicle",
+    predictive_disruption: "Predictive Disruption",
+    corridor_blocked: "Confirmed Corridor Blockage",
+  };
+  return map[rawType.toLowerCase()] || rawType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function extractCorridor(text?: string): string | null {
+  if (!text) return null;
+  const match = text.match(/\b(?:NH|SH)[-\s]?\d+[A-Z]?(?:\s*(?:[–-]|to)\s*[A-Za-z]+(?:\s*[–-]\s*[A-Za-z]+)?)?\b/i);
+  if (match) return match[0].trim();
+  const namedMatch = text.match(/\b(?:GS\s*Road|Guwahati[–-]Tezpur|Dimapur[–-]Kohima)\b/i);
+  return namedMatch ? namedMatch[0].trim() : null;
+}
+
+function deriveHazardType(rawType?: string, title?: string, description?: string): string {
+  const combined = `${rawType || ""} ${title || ""} ${description || ""}`.toLowerCase();
+  if (combined.includes("landslide") || combined.includes("rockfall") || combined.includes("debris") || combined.includes("mudslide")) {
+    return "Landslide / Rockfall";
+  }
+  if (combined.includes("flood") || combined.includes("waterlog") || combined.includes("inundat") || combined.includes("submerged")) {
+    return "Flooding / Waterlogging";
+  }
+  if (combined.includes("block") || combined.includes("closed") || combined.includes("impassable") || combined.includes("corridor_blocked")) {
+    return "Road Blockage";
+  }
+  if (combined.includes("bridge") || combined.includes("damage") || combined.includes("cave-in") || combined.includes("structural") || combined.includes("crack")) {
+    return "Infrastructure / Road Damage";
+  }
+  if (combined.includes("rain") || combined.includes("weather") || combined.includes("storm") || combined.includes("cyclone") || combined.includes("fog")) {
+    return "Severe Weather";
+  }
+  if (combined.includes("accident") || combined.includes("collision") || combined.includes("overturned")) {
+    return "Traffic Accident";
+  }
+  if (combined.includes("trip_delay") || combined.includes("congestion") || combined.includes("slow traffic")) {
+    return "Transit Delay / Congestion";
+  }
+  if (combined.includes("reroute") || combined.includes("detour")) {
+    return "Route Detour";
+  }
+  if (combined.includes("predictive_disruption") || combined.includes("predictive")) {
+    return "Predictive Disruption Risk";
+  }
+  return formatAlertType(rawType);
+}
+
+
+function getRecommendedPublicAction(
+  severity?: string,
+  rawType?: string,
+  title?: string,
+  description?: string,
+  tAlerts?: any
+): { action: string; tone: "critical" | "warning" | "caution" } {
+  const combined = `${severity || ""} ${rawType || ""} ${title || ""} ${description || ""}`.toLowerCase();
+  const sev = (severity || "").toLowerCase();
+
+  if (
+    sev === "critical" ||
+    combined.includes("impassable") ||
+    combined.includes("blocked") ||
+    combined.includes("landslide") ||
+    combined.includes("bridge collapse") ||
+    combined.includes("closed")
+  ) {
+    return {
+      action: tAlerts?.actionAvoid || "Avoid affected corridor — use an available alternate route",
+      tone: "critical",
+    };
+  }
+
+  if (
+    sev === "high" ||
+    combined.includes("flood") ||
+    combined.includes("reroute") ||
+    combined.includes("detour") ||
+    combined.includes("delay")
+  ) {
+    return {
+      action: tAlerts?.actionDelays || "Expect delays — exercise caution",
+      tone: "warning",
+    };
+  }
+
+  return {
+    action: tAlerts?.actionCaution || "Exercise caution — monitor road conditions",
+    tone: "caution",
+  };
 }
 
 function getStatusClass(status?: string) {
@@ -617,13 +726,15 @@ function DriverMissionCockpit({
                 {d.activeDetour}
               </span>
               <span className="rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold uppercase">
-                Dispatch Approved
+                {d.dispatchApproved}
               </span>
             </div>
             <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-snug">
-              {criticalAlerts[0]?.description ||
-                trip?.last_reroute_reason ||
-                "Safe alternate corridor dispatched by Control Central"}
+              {criticalAlerts[0]?.description
+                ? localizeAlertDescription(criticalAlerts[0].description, t.alerts)
+                : trip?.last_reroute_reason
+                  ? localizeAlertDescription(trip.last_reroute_reason, t.alerts)
+                  : d.detourDescription}
             </p>
           </div>
         </div>
@@ -796,7 +907,7 @@ function DriverMissionCockpit({
 function Home() {
   const { user, getAuthHeader } = useAuth();
   const { subscribe } = useWebSocket();
-  const { t, formatString } = useLanguage();
+  const { t, formatString, language } = useLanguage();
   const isDriver = user?.role === "DRIVER";
   const isOperator = user?.role === "ADMIN" || user?.role === "CONTROL_OPERATOR" || user?.role === "FIELD_OFFICER";
 
@@ -849,6 +960,9 @@ function Home() {
   const [criticalAlerts, setCriticalAlerts] = useState<AlertItem[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [roads, setRoads] = useState<Road[]>([]);
+  const [corridorRisks, setCorridorRisks] = useState<PublicCorridorRisk[]>([]);
+  const [selectedState, setSelectedState] = useState<string>("ALL");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("ALL");
   const [tripsCount, setTripsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
@@ -1002,15 +1116,101 @@ function Home() {
     try {
       const authHeaders = getAuthHeader();
 
-      // If user is unauthenticated guest or public citizen, fetch ONLY public roads (never call protected operational endpoints)
+      // If user is unauthenticated guest or public citizen, fetch ONLY public roads and risk intelligence
       if (!user || user.role === "PUBLIC") {
-        const roadsResponse = await fetch(`${API_URL}/roads/`, { headers: authHeaders }).catch(() => null);
+        const [roadsResponse, riskResponse] = await Promise.all([
+          fetch(`${API_URL}/roads/`, { headers: authHeaders }).catch(() => null),
+          fetch(`${API_URL}/risk/`, { headers: authHeaders }).catch(() => null),
+        ]);
+
+        let roadsList: Road[] = [];
         if (roadsResponse && roadsResponse.ok) {
-          const roadsData = await roadsResponse.json();
+          const roadsData = await roadsResponse.json().catch(() => []);
           if (Array.isArray(roadsData)) {
+            roadsList = roadsData;
             setRoads(roadsData);
           }
         }
+
+        let riskData: any[] = [];
+        if (riskResponse && riskResponse.ok) {
+          riskData = await riskResponse.json().catch(() => []);
+        }
+
+        if (Array.isArray(riskData) && riskData.length > 0) {
+          const roadsMap = new Map<number, Road>();
+          for (const r of roadsList) {
+            roadsMap.set(r.id, r);
+          }
+
+          const normalized: PublicCorridorRisk[] = riskData.map((item, idx) => {
+            const roadId = item.id ?? idx + 1;
+            const matchingRoad =
+              roadsMap.get(roadId) ||
+              roadsList.find(
+                (r) => r.road_name === item.road || r.road_name === item.highway
+              );
+            const status = matchingRoad?.status || item.status || "open";
+            const score = matchingRoad?.risk_score ?? item.risk_score ?? 0;
+            return {
+              id: roadId,
+              road: item.road || item.highway || `Road #${roadId}`,
+              highway: item.highway || item.road,
+              state: item.state || "Northeast India",
+              district: item.district || "NER Corridor",
+              status,
+              risk_score: Math.round(score),
+              risk_level:
+                item.risk_level ||
+                (score >= 85 ? "Critical" : score >= 65 ? "High" : score >= 40 ? "Moderate" : "Low"),
+              movement_type: item.movement_type || "Normal",
+              latitude: item.latitude ?? matchingRoad?.latitude ?? 26.1445,
+              longitude: item.longitude ?? matchingRoad?.longitude ?? 91.7362,
+            };
+          });
+          setCorridorRisks(normalized);
+        } else if (roadsList.length > 0) {
+          const CORRIDOR_META: Record<string, { state: string; district: string }> = {
+            "NH-415": { state: "Arunachal Pradesh", district: "Papum Pare" },
+            "NH-6": { state: "Mizoram", district: "Aizawl" },
+            "NH-10": { state: "Sikkim", district: "East Sikkim" },
+            "NH-27": { state: "Assam", district: "Kamrup" },
+            "NH-15": { state: "Assam", district: "Dhemaji" },
+            "NH-2": { state: "Manipur", district: "Imphal East" },
+            "NH-8": { state: "Tripura", district: "West Tripura" },
+            "NH-29": { state: "Nagaland", district: "Dimapur" },
+          };
+          const fallback: PublicCorridorRisk[] = roadsList.map((r) => {
+            const meta = CORRIDOR_META[r.road_name] || { state: "Assam", district: "Kamrup" };
+            return {
+              id: r.id,
+              road: r.road_name,
+              highway: r.road_name,
+              state: meta.state,
+              district: meta.district,
+              status: r.status || "open",
+              risk_score: Math.round(r.risk_score || 0),
+              risk_level:
+                (r.risk_score || 0) >= 85
+                  ? "Critical"
+                  : (r.risk_score || 0) >= 65
+                  ? "High"
+                  : (r.risk_score || 0) >= 40
+                  ? "Moderate"
+                  : "Low",
+              movement_type:
+                r.status === "blocked"
+                  ? "Road Blockage"
+                  : r.status === "restricted"
+                  ? "Slope movement"
+                  : "Normal",
+              latitude: r.latitude ?? 26.1445,
+              longitude: r.longitude ?? 91.7362,
+            };
+          });
+          setCorridorRisks(fallback);
+        }
+
         setBackendOnline(true);
         setLoading(false);
         setLoadingAlerts(false);
@@ -1263,6 +1463,73 @@ function Home() {
 
   const recentIncidents = incidents.slice(0, 5);
 
+  const availableStates = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of corridorRisks) {
+      if (c.state) set.add(c.state);
+    }
+    return Array.from(set).sort();
+  }, [corridorRisks]);
+
+  const availableDistricts = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of corridorRisks) {
+      if (selectedState === "ALL" || c.state === selectedState) {
+        if (c.district) set.add(c.district);
+      }
+    }
+    return Array.from(set).sort();
+  }, [corridorRisks, selectedState]);
+
+  const filteredCorridors = useMemo(() => {
+    return corridorRisks.filter((c) => {
+      const matchState = selectedState === "ALL" || c.state === selectedState;
+      const matchDistrict = selectedDistrict === "ALL" || c.district === selectedDistrict;
+      return matchState && matchDistrict;
+    });
+  }, [corridorRisks, selectedState, selectedDistrict]);
+
+  const openCorridors = useMemo(
+    () => filteredCorridors.filter((c) => c.status?.toLowerCase() === "open"),
+    [filteredCorridors]
+  );
+
+  const restrictedCorridors = useMemo(
+    () =>
+      filteredCorridors.filter(
+        (c) => c.status?.toLowerCase() === "restricted" || c.status?.toLowerCase() === "under_repair"
+      ),
+    [filteredCorridors]
+  );
+
+  const blockedCorridors = useMemo(
+    () => filteredCorridors.filter((c) => c.status?.toLowerCase() === "blocked"),
+    [filteredCorridors]
+  );
+
+  const districtHazards = useMemo(
+    () =>
+      filteredCorridors.filter(
+        (c) =>
+          c.status?.toLowerCase() !== "open" ||
+          (c.movement_type && c.movement_type.toLowerCase() !== "normal")
+      ),
+    [filteredCorridors]
+  );
+
+  const matchedWeatherHub = useMemo(() => {
+    if (selectedState !== "ALL") {
+      return (
+        WEATHER_HUBS.find(
+          (h) =>
+            h.state.toLowerCase() === selectedState.toLowerCase() ||
+            selectedState.toLowerCase().includes(h.state.toLowerCase())
+        ) || WEATHER_HUBS[selectedHubIdx]
+      );
+    }
+    return WEATHER_HUBS[selectedHubIdx];
+  }, [selectedState, selectedHubIdx]);
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* If logged in as DRIVER, render dedicated Mission Cockpit exclusively */}
@@ -1349,11 +1616,19 @@ function Home() {
                     {t.dashboard.criticalDisruptionActive}
                   </span>
                   <span className="text-xs text-slate-600 dark:text-slate-400">
-                    {formatString(t.dashboard.incidentStatus, { id: activeDisruption.id, status: activeDisruption.status || "Reported" })}
+                    {formatString(t.dashboard.incidentStatus, {
+                      id: activeDisruption.id,
+                      status:
+                        activeDisruption.status?.toLowerCase() === "verified"
+                          ? t.common.verified
+                          : activeDisruption.status?.toLowerCase() === "rejected"
+                            ? t.common.rejected
+                            : t.common.reported,
+                    })}
                   </span>
                 </div>
                 <h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
-                  {activeDisruption.title || activeDisruption.description}
+                  {localizeAlertDescription(activeDisruption.title || activeDisruption.description, t.alerts)}
                 </h3>
               </div>
             </div>
@@ -1470,7 +1745,11 @@ function Home() {
                 {t.dashboard.disruptionsSub}
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                {activeDisruption.description || "Major landslide blocking NH-15 corridor near Kharupetia. Impassable for heavy logistics units."}
+                {localizeAlertDescription(
+                  activeDisruption.description ||
+                    "Major landslide blocking NH-15 corridor near Kharupetia. Impassable for heavy logistics units.",
+                  t.alerts
+                )}
               </p>
             </div>
 
@@ -1517,7 +1796,10 @@ function Home() {
                 {t.dashboard.safeAlternative}
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                Dynamic detour via Mangaldai-Tangla corridor computed. Reduces corridor risk by 70 points.
+                {localizeAlertDescription(
+                  "Dynamic detour via Mangaldai-Tangla corridor computed. Reduces corridor risk by 70 points.",
+                  t.alerts
+                )}
               </p>
             </div>
           </div>
@@ -1760,12 +2042,12 @@ function Home() {
                     >
                       <Popup>
                         <div className="text-xs space-y-1">
-                          <strong className="text-red-600 font-bold">Landslide Hazard #{activeDisruption.id}</strong>
+                          <strong className="text-red-600 font-bold">{localizeHazardType("Landslide", t.alerts)} #{activeDisruption.id}</strong>
                           <br />NH-15 near Kharupetia (26.40°N, 91.93°E)
-                          <br /><strong>Status:</strong> Impassable (Risk 95.0)
+                          <br /><strong>{t.common.status}:</strong> {t.alerts.impassable || "Impassable"} ({t.common.risk} 95.0)
                           <br />
                           <Link to="/route-planner" className="text-cyan-600 font-semibold underline block mt-1">
-                            Execute Detour in Route Planner →
+                            {t.dashboard.executeDynamicDetour} →
                           </Link>
                         </div>
                       </Popup>
@@ -2046,19 +2328,19 @@ function Home() {
 
             <div className="rounded-lg border border-red-200 bg-red-50/70 dark:border-red-500/30 dark:bg-red-950/20 p-3.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-300">{t.driverCockpit.hazardAlert}</span>
-              <p className="text-sm font-bold text-red-700 dark:text-red-300 mt-1">Incident #15 — Major Landslide</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Near Kharupetia (26.40°N, 91.93°E) • Impassable</p>
+              <p className="text-sm font-bold text-red-700 dark:text-red-300 mt-1">{localizeAlertTitle("Incident #15 — Major Landslide", t.alerts)}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Near Kharupetia (26.40°N, 91.93°E) • {t.alerts.impassable || "Impassable"}</p>
             </div>
 
             <div className="rounded-lg border border-cyan-200 bg-cyan-50/70 dark:border-cyan-500/30 dark:bg-cyan-950/20 p-3.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">{t.dashboard.vehicleNode}</span>
-              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">AS-01-BX-4091 (Trip #318)</p>
-              <p className="text-xs text-cyan-800 dark:text-cyan-200 mt-0.5">Cargo: Critical Vaccines & Cold-Chain Supplies</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">AS-01-BX-4091 ({t.dashboard.tripNode} #318)</p>
+              <p className="text-xs text-cyan-800 dark:text-cyan-200 mt-0.5">{t.dashboard.tableColCargo}: Critical Vaccines &amp; Cold-Chain Supplies</p>
             </div>
 
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/30 dark:bg-emerald-950/20 p-3.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">{t.driverCockpit.activeDetour}</span>
-              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mt-1">Mangaldai-Tangla-Tezpur Detour</p>
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mt-1">Mangaldai-Tangla-Tezpur {t.alerts.hazardRouteDetour || "Detour"}</p>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Detour Delta: +44.3 km • Detour Risk: 25.0 (-70 pts)</p>
             </div>
           </div>
@@ -2140,33 +2422,96 @@ function Home() {
               ) : (
                 criticalAlerts.map((alert) => {
                   const IconComponent = alertIcon(alert.alert_type);
+                  const corridor = extractCorridor(alert.location) || extractCorridor(alert.title) || extractCorridor(alert.description);
+                  const hazardType = deriveHazardType(alert.alert_type, alert.title, alert.description);
+                  const ts = formatAlertTimestamp(alert.created_at, t.alerts, language);
+                  const { action, tone } = getRecommendedPublicAction(
+                    alert.severity,
+                    alert.alert_type,
+                    alert.title,
+                    alert.description,
+                    t.alerts
+                  );
+
+                  const displayTitle = localizeAlertTitle(alert.title, t.alerts);
+                  const displaySeverity = localizeAlertSeverity(alert.severity, t.alerts);
+                  const displayHazard = localizeHazardType(hazardType, t.alerts);
+                  const displayDescription = localizeAlertDescription(alert.description, t.alerts);
+
                   return (
-                    <div key={alert.id} className="p-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                    <div
+                      key={alert.id}
+                      className="p-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/60 last:border-0"
+                    >
                       <div className="flex gap-3">
-                        <div className="mt-0.5 rounded-lg bg-red-100 dark:bg-red-500/10 p-2 text-red-600 dark:text-red-400 shrink-0">
+                        <div className="mt-0.5 rounded-lg bg-red-100 dark:bg-red-500/10 p-2 text-red-600 dark:text-red-400 shrink-0 self-start">
                           <IconComponent size={16} />
                         </div>
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-200 truncate">
-                              {alert.title}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
-                              {formatRelativeTime(alert.created_at)}
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                {displayTitle}
+                              </p>
+                              {/* 1. Severity */}
+                              <span className="rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+                                {displaySeverity}
+                              </span>
+                              {/* 4. Hazard Type */}
+                              <span className="rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                <span className="text-slate-500 dark:text-slate-400 mr-0.5">{t.alerts.hazardTypeLabel}:</span>
+                                {displayHazard}
+                              </span>
+                            </div>
+                            {/* 5. Alert Timestamp */}
+                            <span className="shrink-0 flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                              <Clock3 size={11} className="shrink-0" />
+                              <span>{ts.formatted} ({ts.relative})</span>
                             </span>
                           </div>
 
-                          <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400 line-clamp-2">
-                            {alert.description}
+                          {/* 6. Expected Impact */}
+                          <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
+                            <strong className="font-semibold text-slate-700 dark:text-slate-300 mr-1">{t.alerts.expectedImpact}:</strong>
+                            {displayDescription}
                           </p>
 
-                          {alert.location && (
-                            <p className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                              <MapPin size={11} className="shrink-0 text-slate-400 dark:text-slate-500" />
-                              <span className="truncate">{alert.location}</span>
-                            </p>
-                          )}
+                          {/* Location & Corridor */}
+                          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                            {/* 2. Location / Affected Area */}
+                            {alert.location && (
+                              <p className="flex items-center gap-1">
+                                <MapPin size={11} className="shrink-0 text-slate-400 dark:text-slate-500" />
+                                <span><strong className="text-slate-700 dark:text-slate-300 font-medium">{t.alerts.locationLabel}:</strong> {alert.location}</span>
+                              </p>
+                            )}
+
+                            {/* 3. Affected Corridor/Road (Only when detected) */}
+                            {corridor && (
+                              <p className="flex items-center gap-1">
+                                <Route size={11} className="shrink-0 text-cyan-600 dark:text-cyan-400" />
+                                <span><strong className="text-slate-700 dark:text-slate-300 font-medium">{t.alerts.corridorLabel}:</strong> <span className="font-semibold text-cyan-800 dark:text-cyan-300">{corridor}</span></span>
+                              </p>
+                            )}
+                          </div>
+
+                          {/* 7. Recommended Public Action */}
+                          <div
+                            className={`mt-1.5 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-medium ${
+                              tone === "critical"
+                                ? "border-red-200 bg-red-50/70 text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+                                : tone === "warning"
+                                ? "border-orange-200 bg-orange-50/70 text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300"
+                                : "border-amber-200 bg-amber-50/70 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                            }`}
+                          >
+                            <AlertCircle size={12} className="shrink-0" />
+                            <span>
+                              <strong className="font-semibold mr-1">{t.alerts.recommendedAction}:</strong>
+                              {action}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2467,6 +2812,272 @@ function Home() {
                 badgeType="info"
               />
             </div>
+          </div>
+
+          {/* SECTION: PUBLIC DISTRICT & REGIONAL INTELLIGENCE */}
+          <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/80 p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800 gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-cyan-500/10 p-2 text-cyan-600 dark:text-cyan-400">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-slate-900 dark:text-white text-base">
+                      {t.districtIntelligence.sectionTitle}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t.districtIntelligence.sectionSubtitle}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* State & District Selectors */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <label className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+                    {t.districtIntelligence.filterStateLabel}:
+                  </label>
+                  <select
+                    value={selectedState}
+                    onChange={(e) => {
+                      setSelectedState(e.target.value);
+                      setSelectedDistrict("ALL");
+                    }}
+                    className="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-cyan-500"
+                  >
+                    <option value="ALL">{t.districtIntelligence.allStates}</option>
+                    {availableStates.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  <label className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+                    {t.districtIntelligence.filterDistrictLabel}:
+                  </label>
+                  <select
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    disabled={availableDistricts.length === 0}
+                    className="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-cyan-500 disabled:opacity-50"
+                  >
+                    <option value="ALL">{t.districtIntelligence.allDistricts}</option>
+                    {availableDistricts.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {filteredCorridors.length === 0 ? (
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                <CheckCircle2 size={24} className="mx-auto mb-2 text-slate-400" />
+                <p className="font-semibold text-slate-700 dark:text-slate-300">{t.districtIntelligence.noData}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 1. Connectivity Summary (Open, Restricted, Blocked) */}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {/* Accessible / Open Corridors */}
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/20 dark:bg-emerald-950/20 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                        <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        {t.districtIntelligence.openCorridors}
+                      </span>
+                      <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                        {openCorridors.length}
+                      </span>
+                    </div>
+                    {openCorridors.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {openCorridors.map((c) => (
+                          <span
+                            key={`open-${c.id}`}
+                            className="rounded border border-emerald-300 bg-white/80 dark:border-emerald-500/30 dark:bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-emerald-900 dark:text-emerald-300"
+                          >
+                            {c.road} ({c.district})
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                        {t.common.all || "None"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Restricted Corridors */}
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-500/20 dark:bg-amber-950/20 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                        <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400" />
+                        {t.districtIntelligence.restrictedCorridors}
+                      </span>
+                      <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">
+                        {restrictedCorridors.length}
+                      </span>
+                    </div>
+                    {restrictedCorridors.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {restrictedCorridors.map((c) => (
+                          <span
+                            key={`restricted-${c.id}`}
+                            className="rounded border border-amber-300 bg-white/80 dark:border-amber-500/30 dark:bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-300"
+                          >
+                            {c.road} ({c.district}) • {c.status}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                        {t.common.all || "None"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Blocked Corridors */}
+                  <div className="rounded-lg border border-red-200 bg-red-50/60 dark:border-red-500/20 dark:bg-red-950/20 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-red-800 dark:text-red-300 flex items-center gap-1.5">
+                        <ShieldAlert size={14} className="text-red-600 dark:text-red-400" />
+                        {t.districtIntelligence.blockedCorridors}
+                      </span>
+                      <span className="rounded-full bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300 px-2 py-0.5 text-[10px] font-bold">
+                        {blockedCorridors.length}
+                      </span>
+                    </div>
+                    {blockedCorridors.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {blockedCorridors.map((c) => (
+                          <span
+                            key={`blocked-${c.id}`}
+                            className="rounded border border-red-300 bg-white/80 dark:border-red-500/30 dark:bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-red-900 dark:text-red-300"
+                          >
+                            {c.road} ({c.district})
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                        {t.common.all || "None"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Hazards & Regional Telemetry Grid */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* Active Hazards In Selected Region */}
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <AlertCircle size={14} className="text-cyan-600 dark:text-cyan-400" />
+                        {t.districtIntelligence.hazardsTitle}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                        {formatString(t.districtIntelligence.activeHazardsCount, { count: districtHazards.length })}
+                      </span>
+                    </div>
+
+                    {districtHazards.length > 0 ? (
+                      <div className="space-y-2">
+                        {districtHazards.map((h) => (
+                          <div
+                            key={`hazard-${h.id}`}
+                            className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs flex items-center justify-between gap-2"
+                          >
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-slate-900 dark:text-white">
+                                  {h.road}
+                                </span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                  • {h.district}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                                {h.movement_type && h.movement_type !== "Normal" ? h.movement_type : h.status}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase shrink-0 ${
+                                h.risk_level === "Critical"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400"
+                                  : h.risk_level === "High"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400"
+                                  : "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400"
+                              }`}
+                            >
+                              {h.risk_score}% ({h.risk_level})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded border border-emerald-200 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-950/10 p-3 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{t.districtIntelligence.noHazards}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Regional Weather Snapshot & Route Advisory */}
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-3.5 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <CloudRain size={14} className="text-cyan-600 dark:text-cyan-400" />
+                          {t.districtIntelligence.weatherTitle}
+                        </span>
+                        <span className="text-[10px] text-cyan-700 dark:text-cyan-400 font-medium">
+                          {matchedWeatherHub.state}
+                        </span>
+                      </div>
+                      <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">
+                            {matchedWeatherHub.name}
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {matchedWeatherHub.lat.toFixed(2)}°N, {matchedWeatherHub.lon.toFixed(2)}°E
+                          </p>
+                        </div>
+                        {weatherData && (
+                          <div className="text-right">
+                            <span className="text-base font-bold text-slate-900 dark:text-white">
+                              {weatherData.temperature_c !== undefined ? `${weatherData.temperature_c}°C` : "—"}
+                            </span>
+                            <p className="text-[10px] text-cyan-600 dark:text-cyan-400">
+                              {weatherData.weather_condition || "Atmospheric Sensor Active"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Route Advisory Notice */}
+                    <div className="rounded border border-slate-200 dark:border-slate-800/80 bg-slate-100/70 dark:bg-slate-900/60 p-2.5 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                        <Route size={12} className="text-cyan-600 dark:text-cyan-400 shrink-0" />
+                        <span>{t.districtIntelligence.routeTitle}</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        {t.districtIntelligence.routeUnavailable}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SECTION 2: ACTIVE PUBLIC ALERTS & ADVISORIES */}
@@ -2774,14 +3385,22 @@ function Home() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-3 text-xs flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">Logistics Hubs</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Open Corridor</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Restricted</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Blocked</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">Weather Stations</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">Weather Hub</span>
                 </div>
               </div>
             </div>
@@ -2816,6 +3435,58 @@ function Home() {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
+
+                  {/* Public Corridors */}
+                  {corridorRisks.map((c) => {
+                    const isSelected = filteredCorridors.some((fc) => fc.id === c.id);
+                    const isBlocked = c.status?.toLowerCase() === "blocked";
+                    const isRestricted =
+                      c.status?.toLowerCase() === "restricted" || c.status?.toLowerCase() === "under_repair";
+                    const markerColor = isBlocked ? "#ef4444" : isRestricted ? "#f59e0b" : "#10b981";
+                    return (
+                      <CircleMarker
+                        key={`corridor-marker-${c.id}`}
+                        center={[c.latitude, c.longitude]}
+                        radius={isSelected ? 8 : 5}
+                        pathOptions={{
+                          color: markerColor,
+                          fillColor: markerColor,
+                          fillOpacity: isSelected ? 0.95 : 0.6,
+                          weight: isSelected ? 2.5 : 1.5,
+                        }}
+                      >
+                        <Popup>
+                          <div className="text-xs space-y-1">
+                            <strong className="text-slate-900 font-bold">{c.road}</strong>
+                            <div className="text-[11px] text-slate-500">
+                              {c.state} • {c.district}
+                            </div>
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                  isBlocked
+                                    ? "bg-red-100 text-red-800"
+                                    : isRestricted
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-emerald-100 text-emerald-800"
+                                }`}
+                              >
+                                {c.status}
+                              </span>
+                              <span className="text-[10px] text-slate-600">
+                                Risk: {c.risk_score}% ({c.risk_level})
+                              </span>
+                            </div>
+                            {c.movement_type && c.movement_type.toLowerCase() !== "normal" && (
+                              <div className="text-[10px] text-red-600 font-semibold pt-0.5">
+                                Hazard: {c.movement_type}
+                              </div>
+                            )}
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    );
+                  })}
 
                   {/* Regional Weather Hubs Markers */}
                   {WEATHER_HUBS.map((hub, idx) => (

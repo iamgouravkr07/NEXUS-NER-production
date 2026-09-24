@@ -17,6 +17,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth, getAuthApiUrl } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useWebSocket } from "../hooks/useWebSocket";
+import {
+  formatAlertTimestamp,
+  formatLocalizedRelativeTime,
+  localizeAlertDescription,
+  localizeAlertSeverity,
+  localizeAlertTitle,
+  localizeHazardType,
+  localizeSourceEntity,
+} from "../i18n/translations";
 
 type AlertSeverity = "Critical" | "High" | "Medium" | "Low";
 type AlertStatus = "Active" | "Acknowledged" | "Resolved";
@@ -31,6 +40,7 @@ type AlertItem = {
   type: string;
   rawType: string;
   time: string;
+  createdAt?: string;
   status: AlertStatus;
   sourceEntity?: string | null;
   sourceEntityId?: number | null;
@@ -48,20 +58,6 @@ type AlertSummaryData = {
   resolved: number;
 };
 
-function formatRelativeTime(dateStr?: string): string {
-  if (!dateStr) return "Just now";
-  try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hr ago`;
-    return `${Math.floor(diffHours / 24)} d ago`;
-  } catch {
-    return "Recently";
-  }
-}
 
 function formatAlertType(rawType: string): string {
   const map: Record<string, string> = {
@@ -75,6 +71,90 @@ function formatAlertType(rawType: string): string {
     corridor_blocked: "Confirmed Corridor Blockage",
   };
   return map[rawType.toLowerCase()] || rawType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function extractCorridor(text?: string): string | null {
+  if (!text) return null;
+  const match = text.match(/\b(?:NH|SH)[-\s]?\d+[A-Z]?(?:\s*(?:[–-]|to)\s*[A-Za-z]+(?:\s*[–-]\s*[A-Za-z]+)?)?\b/i);
+  if (match) return match[0].trim();
+  const namedMatch = text.match(/\b(?:GS\s*Road|Guwahati[–-]Tezpur|Dimapur[–-]Kohima)\b/i);
+  return namedMatch ? namedMatch[0].trim() : null;
+}
+
+function deriveHazardType(rawType?: string, title?: string, description?: string): string {
+  const combined = `${rawType || ""} ${title || ""} ${description || ""}`.toLowerCase();
+  if (combined.includes("landslide") || combined.includes("rockfall") || combined.includes("debris") || combined.includes("mudslide")) {
+    return "Landslide / Rockfall";
+  }
+  if (combined.includes("flood") || combined.includes("waterlog") || combined.includes("inundat") || combined.includes("submerged")) {
+    return "Flooding / Waterlogging";
+  }
+  if (combined.includes("block") || combined.includes("closed") || combined.includes("impassable") || combined.includes("corridor_blocked")) {
+    return "Road Blockage";
+  }
+  if (combined.includes("bridge") || combined.includes("damage") || combined.includes("cave-in") || combined.includes("structural") || combined.includes("crack")) {
+    return "Infrastructure / Road Damage";
+  }
+  if (combined.includes("rain") || combined.includes("weather") || combined.includes("storm") || combined.includes("cyclone") || combined.includes("fog")) {
+    return "Severe Weather";
+  }
+  if (combined.includes("accident") || combined.includes("collision") || combined.includes("overturned")) {
+    return "Traffic Accident";
+  }
+  if (combined.includes("trip_delay") || combined.includes("congestion") || combined.includes("slow traffic")) {
+    return "Transit Delay / Congestion";
+  }
+  if (combined.includes("reroute") || combined.includes("detour")) {
+    return "Route Detour";
+  }
+  if (combined.includes("predictive_disruption") || combined.includes("predictive")) {
+    return "Predictive Disruption Risk";
+  }
+  return formatAlertType(rawType || "general");
+}
+
+
+function getRecommendedPublicAction(
+  severity?: string,
+  rawType?: string,
+  title?: string,
+  description?: string,
+  tAlerts?: any
+): { action: string; tone: "critical" | "warning" | "caution" } {
+  const combined = `${severity || ""} ${rawType || ""} ${title || ""} ${description || ""}`.toLowerCase();
+  const sev = (severity || "").toLowerCase();
+
+  if (
+    sev === "critical" ||
+    combined.includes("impassable") ||
+    combined.includes("blocked") ||
+    combined.includes("landslide") ||
+    combined.includes("bridge collapse") ||
+    combined.includes("closed")
+  ) {
+    return {
+      action: tAlerts?.actionAvoid || "Avoid affected corridor — use an available alternate route",
+      tone: "critical",
+    };
+  }
+
+  if (
+    sev === "high" ||
+    combined.includes("flood") ||
+    combined.includes("reroute") ||
+    combined.includes("detour") ||
+    combined.includes("delay")
+  ) {
+    return {
+      action: tAlerts?.actionDelays || "Expect delays — exercise caution",
+      tone: "warning",
+    };
+  }
+
+  return {
+    action: tAlerts?.actionCaution || "Exercise caution — monitor road conditions",
+    tone: "caution",
+  };
 }
 
 function severityClass(severity: AlertSeverity) {
@@ -115,7 +195,7 @@ function alertIcon(type: string) {
 
 function Alerts() {
   const { getAuthHeader } = useAuth();
-  const { t, formatString } = useLanguage();
+  const { t, formatString, language } = useLanguage();
   const { subscribe } = useWebSocket();
   const apiBase = getAuthApiUrl();
 
@@ -191,7 +271,8 @@ function Alerts() {
           severity: sevFormatted,
           type: formatAlertType(a.alert_type || "general"),
           rawType: rawAlertsType,
-          time: formatRelativeTime(a.created_at),
+          time: formatLocalizedRelativeTime(a.created_at, t.alerts),
+          createdAt: a.created_at || undefined,
           status: statFormatted,
           sourceEntity: a.source_entity || null,
           sourceEntityId: a.source_entity_id || null,
@@ -535,14 +616,14 @@ function Alerts() {
               className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
             >
               <option value="All">{t.common.all}</option>
-              <option value="Predictive Disruption">Predictive Disruption</option>
-              <option value="Confirmed Corridor Blockage">Confirmed Corridor Blockage</option>
-              <option value="Road Incident">Road Incident</option>
-              <option value="Road Risk">Road Risk</option>
-              <option value="Reroute">Reroute</option>
-              <option value="Trip Delay">Trip Delay</option>
-              <option value="Weather">Weather</option>
-              <option value="Vehicle">Vehicle</option>
+              <option value="Predictive Disruption">{t.alerts.hazardPredictiveDisruption}</option>
+              <option value="Confirmed Corridor Blockage">{t.alerts.hazardCorridorBlocked}</option>
+              <option value="Road Incident">{t.alerts.hazardRoadIncident}</option>
+              <option value="Road Risk">{t.alerts.hazardRoadRisk}</option>
+              <option value="Reroute">{t.alerts.hazardRouteDetour}</option>
+              <option value="Trip Delay">{t.alerts.hazardTransitDelay}</option>
+              <option value="Weather">{t.alerts.hazardSevereWeather}</option>
+              <option value="Vehicle">{t.alerts.sourceVehicle}</option>
             </select>
 
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 hover:text-slate-900 select-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:text-slate-200">
@@ -580,6 +661,22 @@ function Alerts() {
         {!loading &&
           filteredAlerts.map((alert) => {
             const Icon = alertIcon(alert.type);
+            const corridor = extractCorridor(alert.location) || extractCorridor(alert.title) || extractCorridor(alert.description);
+            const hazardType = deriveHazardType(alert.rawType, alert.title, alert.description);
+            const ts = formatAlertTimestamp(alert.createdAt, t.alerts, language);
+            const { action, tone } = getRecommendedPublicAction(
+              alert.severity,
+              alert.rawType,
+              alert.title,
+              alert.description,
+              t.alerts
+            );
+
+            const displayTitle = localizeAlertTitle(alert.title, t.alerts);
+            const displaySeverity = localizeAlertSeverity(alert.severity, t.alerts);
+            const displayHazard = localizeHazardType(hazardType, t.alerts);
+            const displayDescription = localizeAlertDescription(alert.description, t.alerts);
+            const displayEntity = localizeSourceEntity(alert.sourceEntity, alert.sourceEntityId, t.alerts);
 
             return (
               <div
@@ -607,29 +704,32 @@ function Alerts() {
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{alert.title}</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{displayTitle}</h3>
+                        {/* 1. Severity */}
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${severityClass(
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${severityClass(
                             alert.severity
                           )}`}
                         >
-                          {alert.severity}
+                          {displaySeverity}
+                        </span>
+                        {/* 4. Hazard Type */}
+                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:border-transparent dark:bg-slate-800 dark:text-slate-300">
+                          <span className="text-slate-500 dark:text-slate-400 mr-1">{t.alerts.hazardTypeLabel}:</span>
+                          {displayHazard}
                         </span>
                         {alert.rawType === "predictive_disruption" ? (
                           <span className="rounded-full border border-purple-300 bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300">
-                            PREDICTIVE ADVISORY
+                            {t.alerts.predictiveAdvisory}
                           </span>
                         ) : alert.rawType === "corridor_blocked" || alert.rawType === "road_incident" ? (
                           <span className="rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
-                            CONFIRMED
+                            {t.alerts.confirmedBadge}
                           </span>
                         ) : null}
-                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:border-transparent dark:bg-slate-800 dark:text-slate-400">
-                          {alert.type}
-                        </span>
                         {alert.sourceEntity && alert.sourceEntityId ? (
                           <span className="rounded-full border border-cyan-300 bg-cyan-50 px-2 py-0.5 text-[10px] font-mono font-medium text-cyan-800 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300">
-                            {alert.sourceEntity.replace(/_/g, " ").toUpperCase()} #{alert.sourceEntityId}
+                            {displayEntity}
                           </span>
                         ) : null}
                         {alert.isTestFixture ? (
@@ -639,34 +739,73 @@ function Alerts() {
                         ) : null}
                       </div>
 
+                      {/* 6. Expected Impact */}
                       <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-600 dark:text-slate-400">
-                        {alert.description}
+                        <strong className="font-semibold text-slate-700 dark:text-slate-300 mr-1">{t.alerts.expectedImpact}:</strong>
+                        {displayDescription}
                       </p>
 
                       {alert.rawType === "predictive_disruption" && (
                         <div className="mt-2.5 rounded-lg border border-purple-200 bg-purple-50/60 p-2.5 text-[11px] text-purple-950 flex flex-wrap items-center justify-between gap-2 dark:border-purple-500/20 dark:bg-purple-500/[0.04] dark:text-slate-300">
                           <span className="flex items-center gap-1.5 font-medium text-purple-800 dark:text-purple-300">
                             <BrainCircuit size={13} />
-                            <span>Forecast Horizon: Next 6 Hours &bull; Threshold: 55%</span>
+                            <span>{t.alerts.forecastHorizon}</span>
                           </span>
                           <span className="text-[10px] text-slate-500 italic dark:text-slate-400">
-                            Operational verification required &bull; Prototype ML advisory
+                            {t.alerts.operationalVerificationRequired}
                           </span>
                         </div>
                       )}
 
+                      {/* Location, Corridor, Timestamp Metadata */}
                       <div className="mt-3 flex flex-wrap items-center gap-4">
+                        {/* 2. Location / Affected Area */}
                         <div className="flex items-center gap-1.5">
-                          <MapPin size={13} className="text-slate-400 dark:text-slate-600" />
-                          <span className="text-[11px] text-slate-600 dark:text-slate-400">{alert.location}</span>
+                          <MapPin size={13} className="text-slate-400 dark:text-slate-600 shrink-0" />
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                            <strong className="text-slate-700 dark:text-slate-300 font-medium mr-1">{t.alerts.locationLabel}:</strong>
+                            {alert.location}
+                          </span>
                         </div>
 
+                        {/* 3. Affected Corridor/Road (Only when detected) */}
+                        {corridor && (
+                          <div className="flex items-center gap-1.5">
+                            <Route size={13} className="text-cyan-600 dark:text-cyan-400 shrink-0" />
+                            <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                              <strong className="text-slate-700 dark:text-slate-300 font-medium mr-1">{t.alerts.corridorLabel}:</strong>
+                              <span className="font-semibold text-cyan-800 dark:text-cyan-300">{corridor}</span>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 5. Alert Timestamp */}
                         <div className="flex items-center gap-1.5">
-                          <Clock3 size={13} className="text-slate-400 dark:text-slate-600" />
-                          <span className="text-[11px] text-slate-500">{alert.time}</span>
+                          <Clock3 size={13} className="text-slate-400 dark:text-slate-600 shrink-0" />
+                          <span className="text-[11px] text-slate-500">
+                            <strong className="text-slate-700 dark:text-slate-300 font-medium mr-1">{t.alerts.timestampLabel}:</strong>
+                            {ts.formatted} ({ts.relative})
+                          </span>
                         </div>
 
                         <span className="text-[10px] font-mono text-slate-500 dark:text-slate-600">{alert.id}</span>
+                      </div>
+
+                      {/* 7. Recommended Public Action */}
+                      <div
+                        className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
+                          tone === "critical"
+                            ? "border-red-200 bg-red-50/70 text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+                            : tone === "warning"
+                            ? "border-orange-200 bg-orange-50/70 text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300"
+                            : "border-amber-200 bg-amber-50/70 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                        }`}
+                      >
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>
+                          <strong className="font-semibold mr-1">{t.alerts.recommendedAction}:</strong>
+                          {action}
+                        </span>
                       </div>
                     </div>
                   </div>
