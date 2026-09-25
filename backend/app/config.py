@@ -89,3 +89,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 NLP_PROVIDER = os.getenv("NLP_PROVIDER", "gemini" if GEMINI_API_KEY else "fallback").lower()
 NLP_REQUEST_TIMEOUT_SECONDS = int(os.getenv("NLP_REQUEST_TIMEOUT_SECONDS", "12"))
+
+# Cloudinary Durable Photo Storage Configuration
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()

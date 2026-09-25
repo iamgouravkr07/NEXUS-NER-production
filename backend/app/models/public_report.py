@@ -30,7 +30,9 @@ class PublicReport(Base):
     report_type = Column(String(50), nullable=False)
     description = Column(Text, nullable=False)
     severity_hint = Column(String(20), nullable=True)
-    photo_url = Column(String(255), nullable=True)
+    photo_url = Column(String(512), nullable=True)
+    photo_public_id = Column(String(255), nullable=True)
+    content_type = Column(String(50), nullable=True)
 
     status = Column(String(20), default="UNVERIFIED", nullable=False, index=True)
 

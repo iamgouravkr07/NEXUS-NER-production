@@ -14,7 +14,7 @@ from app.schemas.public_report import (
     PublicReportSummary,
     PublicReportVerify,
 )
-from app.services.photo_storage import save_report_photo
+from app.services.photo_storage import upload_report_photo
 from app.services.public_report_service import PublicReportService
 
 logger = logging.getLogger("nexus_ner.api.public_reports")
@@ -40,10 +40,12 @@ async def submit_public_report(
     2. application/json for backward compatibility.
     The reporter identity is strictly bound to the authenticated user token.
     """
-    content_type = request.headers.get("content-type", "").lower()
+    content_type_header = request.headers.get("content-type", "").lower()
     photo_url: Optional[str] = None
+    photo_public_id: Optional[str] = None
+    content_type_val: Optional[str] = None
 
-    if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+    if "multipart/form-data" in content_type_header or "application/x-www-form-urlencoded" in content_type_header:
         form = await request.form()
         lat_val = form.get("latitude")
         lon_val = form.get("longitude")
@@ -80,7 +82,10 @@ async def submit_public_report(
 
         raw_file = form.get("photo")
         if hasattr(raw_file, "filename") and bool(raw_file.filename):
-            photo_url = save_report_photo(raw_file)
+            upload_res = upload_report_photo(raw_file)
+            photo_url = upload_res.photo_url
+            photo_public_id = upload_res.photo_public_id
+            content_type_val = upload_res.content_type
 
     else:
         try:
@@ -103,6 +108,8 @@ async def submit_public_report(
         reporter_id=current_user.id,
         payload=payload,
         photo_url=photo_url,
+        photo_public_id=photo_public_id,
+        content_type=content_type_val,
     )
 
 

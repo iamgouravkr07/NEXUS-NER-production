@@ -63,6 +63,8 @@ class PublicReportService:
             rejection_reason=report.rejection_reason,
             verification_notes=None if public_view else report.verification_notes,
             photo_url=report.photo_url,
+            photo_public_id=getattr(report, "photo_public_id", None),
+            content_type=getattr(report, "content_type", None),
         )
 
     @classmethod
@@ -72,6 +74,8 @@ class PublicReportService:
         reporter_id: int,
         payload: PublicReportCreate,
         photo_url: Optional[str] = None,
+        photo_public_id: Optional[str] = None,
+        content_type: Optional[str] = None,
     ) -> PublicReportResponse:
         user = db.query(User).filter(User.id == reporter_id).first()
         if not user:
@@ -115,6 +119,8 @@ class PublicReportService:
             description=payload.description.strip(),
             severity_hint=payload.severity_hint,
             photo_url=photo_url or payload.photo_url,
+            photo_public_id=photo_public_id or payload.photo_public_id,
+            content_type=content_type or payload.content_type,
             status="UNVERIFIED",
             created_at=datetime.now(timezone.utc),
         )

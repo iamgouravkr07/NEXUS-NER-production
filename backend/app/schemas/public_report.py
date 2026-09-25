@@ -25,6 +25,8 @@ class PublicReportCreate(BaseModel):
     road_id: Optional[int] = Field(None, description="Optional affected road identifier")
     severity_hint: Optional[str] = Field(None, description="Citizen-perceived severity level")
     photo_url: Optional[str] = Field(None, description="Optional photo URL/path")
+    photo_public_id: Optional[str] = Field(None, description="Optional Cloudinary public_id")
+    content_type: Optional[str] = Field(None, description="Optional photo MIME content-type")
 
     @field_validator("report_type")
     @classmethod
@@ -83,6 +85,8 @@ class PublicReportResponse(BaseModel):
     rejection_reason: Optional[str] = None
     verification_notes: Optional[str] = None
     photo_url: Optional[str] = None
+    photo_public_id: Optional[str] = None
+    content_type: Optional[str] = None
 
     class Config:
         from_attributes = True

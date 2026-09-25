@@ -26,6 +26,8 @@ type CitizenReport = {
   description: string;
   severity_hint?: string | null;
   photo_url?: string | null;
+  photo_public_id?: string | null;
+  content_type?: string | null;
   status: string;
   created_at: string;
   reviewed_at?: string | null;
