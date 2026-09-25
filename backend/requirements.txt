@@ -22,6 +22,7 @@ python-multipart>=0.0.12
 SQLAlchemy>=2.0.0
 geoalchemy2>=0.14.0
 psycopg2-binary>=2.9.9
+psycopg[binary]
 alembic>=1.13.0
 
 # HTTP Client
